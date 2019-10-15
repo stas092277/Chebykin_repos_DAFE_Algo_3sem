@@ -56,7 +56,7 @@ private:
 };
 
 
-void dfs(const IGraph* const graph, size_t vertex, std::vector<Color>& colors, std::vector<int>& lengths,int  &min) {
+void bfs(const IGraph* const graph, size_t vertex, std::vector<Color>& colors, std::vector<int>& lengths,int  &min) {
 
     queue<size_t> findVertexs;
     findVertexs.push(vertex);
@@ -90,7 +90,7 @@ int maxDev(const IGraph* const graph, size_t top) {
     auto lengthFoTops = std::vector<int>(graph->VerticesCount(), 0);
 
     int minLength = 100000;
-    dfs(graph, top , verticesColors, lengthFoTops, minLength);
+    bfs(graph, top , verticesColors, lengthFoTops, minLength);
     return minLength;
 }
 
