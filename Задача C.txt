@@ -1,0 +1,123 @@
+﻿#include <iostream>
+#include <vector>
+#include <queue>
+
+using namespace std;
+
+enum Color {
+    WHITE,
+    GRAY,
+    BLACK
+};
+
+class IGraph {  //Интерфейс графа
+public:
+    virtual ~IGraph() {}    //Виртуальный деструктор чтобы при удалении по указателю не было утечки памяти
+
+    //Добавить ребро выходящее из вершины from и ведущее в вершину to
+    virtual void AddEdge(int from, int to) = 0;   //чисто виртуальная функция (не имеет реализации в этом классе
+
+    //получить кол-во вершин в графе
+    virtual int VerticesCount() const  = 0;
+
+    //Получить вектор всех вершин в которые можно попасть по ребру из вершины vertex
+    virtual std::vector<int> GetVertices(int vertex) const = 0;
+};
+
+class MatrixGraph : public IGraph {
+public:
+    //Конструктор принимает кол-во вершин в графе
+    MatrixGraph(int verticesCount) : vertices(verticesCount){
+    }
+
+    void AddEdge(int from, int to) override {
+        vertices[from].push_back(to);
+        vertices[to].push_back(from);
+        //Если бы граф был неориентированным то также было бы vertices.at(to).at(from) = true;
+    }
+
+    int VerticesCount() const override {
+        return vertices.size();
+    }
+
+    //Внимание! эта функция работает за линейное от кол-ва вершин время
+    std::vector<int> GetVertices(int vertex) const override {
+        return vertices[vertex];
+    }
+
+private:
+    std::vector<std::vector<int>> vertices;   //Матрицу будем хранить в виде вектора векторов, кол-во столбцов равео кол-ву строк  равно  кол-ву вершин
+};
+
+class Check{
+public:
+    int length = 0;
+    int numWay = 0;
+    Color color = WHITE;
+};
+
+void bfs(const IGraph* const graph, int vertex, int end, std::vector<Check>& lengths, int  &min, int &num )  {
+
+    queue<int> findVertexs;
+    findVertexs.push(vertex);
+
+    while(!findVertexs.empty())
+    {
+        vertex = findVertexs.front();
+        findVertexs.pop();
+        for(auto nextVertex : graph->GetVertices(vertex)) {
+            if(nextVertex == end ){
+                if(min == 100000)
+                {
+                    min = lengths[vertex].length + 1;
+                    num+=lengths[vertex].numWay;
+                }
+                else if(min == lengths[vertex].length + 1 )
+                    num+=lengths[vertex].numWay;
+            }
+            else {
+                if(lengths[nextVertex].color == WHITE) {
+                    lengths[nextVertex].color = GRAY;
+                    lengths[nextVertex].length = lengths[vertex].length + 1;
+                    lengths[nextVertex].numWay = lengths[vertex].numWay;
+                    findVertexs.push(nextVertex);
+                }
+                else if(lengths[nextVertex].length == lengths[vertex].length + 1 )
+                {
+                    lengths[nextVertex].numWay += lengths[vertex].numWay;
+                }
+            }
+        }
+    }
+
+}
+
+
+int numOfCycle(const IGraph* const graph, int from, int to) {
+    auto lengthFoTops = std::vector<Check>(graph->VerticesCount());
+
+    int numCycle = 0;
+    int minLength = 100000;
+    lengthFoTops[from].numWay = 1;
+    bfs (graph, from , to, lengthFoTops, minLength, numCycle);
+    return numCycle;
+}
+
+int main()
+{
+    int tops, numEdges;
+    std::cin>>tops >> numEdges;
+    MatrixGraph graph(tops);
+    for (int i = 0; i < numEdges; i++){
+        int top1, top2;
+        cin >> top1 >> top2;
+        graph.AddEdge(top1, top2);
+    }
+
+    int from, to;
+    std::cin>>from >> to;
+
+    std::cout << numOfCycle(&graph, from, to);
+
+
+}
