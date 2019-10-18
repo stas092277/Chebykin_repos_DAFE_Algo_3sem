@@ -6,8 +6,7 @@ using namespace std;
 
 enum Color {
     WHITE,
-    GRAY,
-    BLACK
+    GRAY
 };
 
 class IGraph {  //Интерфейс графа
@@ -15,82 +14,81 @@ public:
     virtual ~IGraph() {}    //Виртуальный деструктор чтобы при удалении по указателю не было утечки памяти
 
     //Добавить ребро выходящее из вершины from и ведущее в вершину to
-    virtual void AddEdge(size_t from, size_t to) = 0;   //чисто виртуальная функция (не имеет реализации в этом классе
+    virtual void AddEdge(int from, int to) = 0;   //чисто виртуальная функция (не имеет реализации в этом классе
 
     //получить кол-во вершин в графе
-    virtual size_t VerticesCount() const  = 0;
+    virtual int VerticesCount() const  = 0;
 
     //Получить вектор всех вершин в которые можно попасть по ребру из вершины vertex
-    virtual std::vector<size_t> GetVertices(size_t vertex) const = 0;
+    virtual std::vector<int> GetVertices(int vertex) const = 0;
 };
 
 class MatrixGraph : public IGraph {
 public:
     //Конструктор принимает кол-во вершин в графе
-    MatrixGraph(size_t verticesCount) : vertices(verticesCount, std::vector<bool>(verticesCount, false)) { //задаём матрицу verticesCount x verticesCount заполненую false
+    MatrixGraph(int verticesCount) : vertices(verticesCount){
     }
 
-    void AddEdge(size_t from, size_t to) override {
-        vertices.at(from).at(to) = true;
-        vertices.at(to).at(from) = true;
+    void AddEdge(int from, int to) override {
+        vertices[from].push_back(to);
+        vertices[to].push_back(from);
         //Если бы граф был неориентированным то также было бы vertices.at(to).at(from) = true;
     }
 
-    size_t VerticesCount() const override {
+    int VerticesCount() const override {
         return vertices.size();
     }
 
     //Внимание! эта функция работает за линейное от кол-ва вершин время
-    std::vector<size_t> GetVertices(size_t vertex) const override {
-        std::vector<size_t> result;
-        for(size_t i = 0, n = vertices.size(); i < n; ++i) {
-            if(vertices.at(vertex)[i]) {    //если в нашей матрице на позиции (vertex, i) стоит true то из vertex по ребру можно попасть в i
-                result.push_back(i);        //добавляем i в результат. Амартизированное время работы будет константным
-            }
-        }
-        return result;
+    std::vector<int> GetVertices(int vertex) const override {
+        return vertices[vertex];
     }
 
 private:
-    std::vector<std::vector<bool>> vertices;   //Матрицу будем хранить в виде вектора векторов, кол-во столбцов равео кол-ву строк  равно  кол-ву вершин
+    std::vector<std::vector<int>> vertices;   //Матрицу будем хранить в виде вектора векторов, кол-во столбцов равео кол-ву строк  равно  кол-ву вершин
 };
 
+class Check{
+public:
+    int length = 0;
+    Color color = WHITE;
+};
 
-void bfs(const IGraph* const graph, size_t vertex, std::vector<Color>& colors, std::vector<int>& lengths,int  &min) {
+void dfs(const IGraph* const graph, size_t vertex, std::vector<Check>& checking, int  &min) {
 
     queue<size_t> findVertexs;
     findVertexs.push(vertex);
-
     while(!findVertexs.empty())
     {
-        vertex = findVertexs.front();
+        size_t vertex = findVertexs.front();
         findVertexs.pop();
         for(auto nextVertex : graph->GetVertices(vertex)) {
-            if(colors[nextVertex] == WHITE) {
-                colors[nextVertex] = GRAY;
-                lengths[nextVertex] = lengths[vertex] + 1;
+            if(checking[nextVertex].color == WHITE) {
+                checking[nextVertex].color = GRAY;
+                checking[nextVertex].length = checking[vertex].length + 1;
                 findVertexs.push(nextVertex);
             }
-            else if(lengths[nextVertex] == lengths[vertex])
-                min = lengths[vertex]*2 + 1;
-            else if(lengths[nextVertex] == lengths[vertex]+1)
-                min = lengths[nextVertex]*2 ;
-
+            else if(checking[nextVertex].length == checking[vertex].length)
+            {
+                min = checking[vertex].length*2 + 1;
+                return;
+            }
+            else if(checking[nextVertex].length == checking[vertex].length +1)
+            {
+                min = checking[nextVertex].length*2 ;
+                return;
+            }
         }
     }
-
-//    for(auto tmp : findVertexs)
-//        dfs(graph, tmp, colors, lengths, min );
-
 }
 
-
 int maxDev(const IGraph* const graph, size_t top) {
-    auto verticesColors = std::vector<Color>(graph->VerticesCount(), WHITE);
-    auto lengthFoTops = std::vector<int>(graph->VerticesCount(), 0);
+    auto verticesColors = std::vector<Check>(graph->VerticesCount());
+
+    verticesColors[top].color = GRAY;
 
     int minLength = 100000;
-    bfs(graph, top , verticesColors, lengthFoTops, minLength);
+    dfs(graph, top , verticesColors, minLength);
     return minLength;
 }
 
@@ -109,5 +107,4 @@ int main()
        minLength = std::min(minLength, maxDev(&graph, i));
 
     std::cout << (minLength == 100000 ? -1 : minLength);
-
 }
